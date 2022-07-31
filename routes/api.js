@@ -14,38 +14,79 @@ module.exports = function (app) {
   mongoose.connect('mongodb://localhost:27017/library');
   //mongoose.connect(process.env.MONGO_URI);
 
+  const libSchema = new mongoose.Schema({
+    title: String,
+    comments: [String],
+    commentcount: Number
+  });
+
+  const libModel = mongoose.model('Lib', libSchema);
+
   app.route('/api/books')
+
     .get(function (req, res){
-      //response will be array of book objects
-      //json res format: [{"_id": bookid, "title": book_title, "commentcount": num_of_comments },...]
+      libModel.find({}, (err, data) => {
+        if (err) return console.error(err);
+        res.json(data);
+      });
     })
 
-    .post(function (req, res){
+    .post((req, res) => {
       let title = req.body.title;
-      //response will contain new book object including atleast _id and title
+
+      if (!title) return res.send('missing required field title');
+
+      libModel.create({title: title, comments: [], commentcount: 0}, (err, data) => {
+        if (err) return console.error(err);
+        return res.send(data);
+      });
     })
 
-    .delete(function(req, res){
-      //if successful response will be 'complete delete successful'
+    .delete((req, res) => {
+      libModel.deleteMany({}, (err, data) => {
+        if (err) return console.error(err);
+        return res.send('complete delete successful');
+      });
     });
 
 
 
   app.route('/api/books/:id')
-    .get(function (req, res){
+
+    .get((req, res) => {
       let bookid = req.params.id;
-      //json res format: {"_id": bookid, "title": book_title, "comments": [comment,comment,...]}
+      libModel.findById(bookid, (err, data) => {
+        if (err) return console.error(err);
+        if (!data) return res.send('no book exists');
+        return res.send(data);
+      });
     })
 
     .post(function(req, res){
       let bookid = req.params.id;
       let comment = req.body.comment;
-      //json res format same as .get
+
+      if (!comment) return res.send('missing required field comment');
+
+      libModel.findById(bookid, (err, data) => {
+        if (err) return console.error(err);
+        if (!data) return res.send('no book exists');
+        data.comments.push(comment);
+        data.commentcount = data.comments.length;
+        data.save((err, newData) => {
+          if (err) return console.error(err);
+          return res.send(newData);
+        });
+      });
     })
 
-    .delete(function(req, res){
+    .delete((req, res) => {
       let bookid = req.params.id;
-      //if successful response will be 'delete successful'
-    });
 
+      libModel.deleteOne({_id: bookid}, (err, data) => {
+        if (err) return console.error(err);
+        if (!data || !data.deletedCount) return res.send('no book exists');
+        return res.send('delete successful');
+      });
+    });
 };
