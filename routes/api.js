@@ -9,18 +9,17 @@
 'use strict';
 const mongoose = require('mongoose');
 
-module.exports = function (app) {
-
-  mongoose.connect('mongodb://localhost:27017/library');
-  //mongoose.connect(process.env.MONGO_URI);
-
-  const libSchema = new mongoose.Schema({
-    title: String,
+const libSchema = new mongoose.Schema({
+    title: {type: String, required: true},
     comments: [String],
     commentcount: Number
   });
 
   const libModel = mongoose.model('Lib', libSchema);
+
+module.exports = function (app) {
+
+
 
   app.route('/api/books')
 
